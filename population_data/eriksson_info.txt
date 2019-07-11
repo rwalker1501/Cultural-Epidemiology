@@ -1,0 +1,6 @@
+{
+	"time_multiplier": 25,
+	"density_multiplier": 0.00577,
+	"time_window": 24,
+	"ascending_time": false
+}
