@@ -1,0 +1,19 @@
+{
+    "date_lag": 0, 
+    "date_window": 24, 
+    "default_max_for_uninhabited": false, 
+    "filters_applied": "", 
+    "globals_type": "All", 
+    "max_date": 46000, 
+    "max_lat": 60, 
+    "min_date": 0, 
+    "min_globals": 1, 
+    "min_lat": -40, 
+    "min_p": 0.01, 
+    "processed_targets": false, 
+    "res_eps": 11, 
+    "res_lambda": 24, 
+    "res_zetta": 11, 
+    "save_processed_targets": false, 
+    "user_max_for_uninhabited": 1
+}
