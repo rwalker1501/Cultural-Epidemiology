@@ -15,6 +15,12 @@ The code provided here is designed to analyse the relationship between parietal 
 With minor modifications the same code can be used to analyse  other categories of artifact, and other population estimates
 
 *******************
+Implementation
+*******************
+
+The code is implemented in Python 2.7
+
+*******************
 Usage
 *******************
 
@@ -26,7 +32,7 @@ The program can be used in "script" or "menu" mode.
 Script mode
 -----
 
-The script contained in the program fig_script.py reproduces the full set of results contained in the paper (plus additional supporting results)
+The script contained in the program "fig_script" reproduces the full set of results contained in the paper (plus additional supporting results)
 
 To launch the script, navigate to the working directory containing the code, open a terminal and type
 
@@ -35,7 +41,7 @@ To launch the script, navigate to the working directory containing the code, ope
 -----
 Menu mode
 -----
-The script main_menu allows the user to load the experiment parameter file for a specific analysis, modify the parameter values, save the parameter values in a new experiment parameter file, and run the corresponding analysis.
+The script "main_menu" allows the user to load the experiment parameter file for a specific analysis, modify the parameter values, save the parameter values in a new experiment parameter file, and run the corresponding analysis.
 
 To launch the menu system, navigate to the working directory containing the code, open a terminal and type
 
