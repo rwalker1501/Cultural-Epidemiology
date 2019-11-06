@@ -78,7 +78,8 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
         my_gamma=float(gamma_v[i_gamma]) 
         # Compute the predicted size of the infected population  as a proportion of population (p_infected) for all possible values of rho_bins, given the value of gamma. Guarantee it is always 0 or greater
         if model=='epidemiological':
-            p_infected=np.maximum(bin_zeros,1-my_gamma/sqrt_rho_bins)  
+            rho_star=my_gamma**2
+            p_infected=np.asarray([compute_prop_I(rho,rho_star)for rho in rho_bins])
         if model=='proportional' or model=='constant':
             p_infected=rho_bins/max(rho_bins)
         for i_zetta in range(0,n_zetta):
@@ -144,9 +145,17 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     return(max_gamma, max_zetta, max_eps, max_likelihood,thresholds)
     
 
+def compute_prop_I(rho,rho_star):
+        if rho<=rho_star:
+            prop_I=0
+        else:
+            prop_I=1-sqrt(rho_star/rho)
+        return prop_I
+    
 def compute_epidemiological_model(p_infected,rho_bins,my_zetta,my_eps):
     p_predicted=np.zeros(len(rho_bins)).astype(float) 
-    p_predicted=my_zetta*((1-my_eps)*p_infected*rho_bins)+my_eps
+#    p_predicted=my_zetta*((1-my_eps)*p_infected*rho_bins)+my_eps
+    p_predicted=(1-my_eps)*my_zetta*p_infected*rho_bins+my_eps
     p_predicted_small=np.zeros(len(p_predicted))
     p_predicted_large=np.zeros(len(p_predicted))
     p_predicted_large.fill(1-0.000000001)
