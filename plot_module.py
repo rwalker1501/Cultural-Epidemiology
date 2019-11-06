@@ -8,7 +8,7 @@ from matplotlib.pyplot import cm
 from matplotlib.font_manager import FontProperties
 from mpl_toolkits.basemap import Basemap
 from matplotlib.patches import Polygon
-# import seaborn
+
 
 
 def plot_stat_graphs(stat_dictionary, bin_values_df, population_data, bin_size, max_population, directory, new_path):
@@ -329,6 +329,7 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt
 def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path):
     lnlminusmax=lnL-np.amax(lnL)
     exp_lnlminusmax=np.exp(lnlminusmax)
+     #     Figure 2 - plots posterior distribution for gamma
     dim1=np.mean(exp_lnlminusmax,axis=2)  
     if model=='epidemiological':
         fig2 = plt.figure();
@@ -348,7 +349,7 @@ def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path
         plt.close()
        
        
-     #     Figure 3 - eps
+     #     Figure 3 - plots posterior distribution for eps
     if model=='epidemiological':
         fig3 = plt.figure();
         dim1=np.mean(exp_lnlminusmax,axis=2) 
@@ -362,6 +363,7 @@ def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path
         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_eps.png"
         fig3.savefig(fig_path)
         plt.close(fig3)
+      #     Figure 4 - plots posterior distribution for zetta
     fig4 = plt.figure();
     dim1=np.mean(exp_lnlminusmax,axis=0) 
     p_zetta = np.squeeze(np.mean(dim1,axis=(0)))

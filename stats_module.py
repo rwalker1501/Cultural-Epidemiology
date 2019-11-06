@@ -2,11 +2,9 @@ from __future__ import division #This means division always gives a floating res
 import plot_module as plm
 import numpy as np
 import pandas as pd;
-import sys, pickle;
-from scipy.stats import linregress, ks_2samp,poisson;
+import sys;
+from scipy.stats import linregress, ks_2samp,mannwhitneyu;
 from math import *
-from scipy.interpolate import interp1d
-import itertools, pickle, gc;
 
 
 
@@ -69,9 +67,9 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     #  Across all possible values of the parameters
     acc=np.zeros((len(acc_likelihoods),len(rho_bins)))
     lnL=np.zeros((n_gamma,n_eps,n_zetta))
-    sqrt_rho_bins=np.sqrt(rho_bins) #These are the values we are computing - rhobins_4_python are intervals for histogram only. In original program were inside loop. Have moved it outside
+ #    sqrt_rho_bins=np.sqrt(rho_bins) #These are the values we are computing - rhobins_4_python are intervals for histogram only. In original program were inside loop. Have moved it outside
     max_LL=-float('inf') 
-    bin_zeros=np.zeros(len(sqrt_rho_bins))
+ #   bin_zeros=np.zeros(len(rho_bins))
     # Scan all possible values of the parameters
     for i_gamma in range (0,n_gamma):
         print 'Percentage completed=', i_gamma/float(n_gamma)
@@ -347,4 +345,6 @@ def generate_statistics(dataframe, globals_dataframe, bin_values_df, minimum_glo
 
     trimmed_p_samples = trimmed_bin_values_df['p_samples'].values;
     trimmed_p_globals = trimmed_bin_values_df['p_globals'].values;
+    stat_dictionary['ks_d'], stat_dictionary['ks_p']=ks_2samp(trimmed_p_samples,trimmed_p_globals)
+    stat_dictionary['mw_u'],stat_dictionary['mw_p']=mannwhitneyu(trimmed_p_samples,trimmed_p_globals)
     return stat_dictionary, trimmed_bin_values_df;

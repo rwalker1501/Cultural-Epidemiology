@@ -132,7 +132,12 @@ def write_analysis(f2, stat_dictionary):
 
     f2.write('Standard deviation of density for sites; '+'{:.2f}'.format(stat_dictionary['std_samples'])+'\n')
     f2.write('Standard deviation of density for globals; '+'{:.2f}'.format(stat_dictionary['std_globals'])+'\n\n')
+    f2.write('KS test  for samples vs globals d=:'+'{:.2f}'.format(stat_dictionary['ks_d'])+'\n')
+    f2.write('KS test for samples vs globals p=:'+' {:.6f}'.format(stat_dictionary['ks_p'])+'\n')
+    f2.write('Mann-Whitney test  for samples vs globals u=:'+'{:.2f}'.format(stat_dictionary['mw_u'])+'\n')
+    f2.write('Mann-Whitney for samples vs globals p=:'+' {:.6f}'.format(stat_dictionary['mw_p'])+'\n')
 
+    
 def write_likelihood_results(aFile, max_gamma, max_zetta, max_eps, max_likelihood, thresholds,model ):
         write_label(aFile, "Results of max likelihood analysis for "+model+" model")
         if model=='epidemiological' or model=='richard':

@@ -1,12 +1,14 @@
 *************************
-Epidemiology of culture data analysis v.1.0
+Epidemiology of culture data analysis v.2.0
 By Richard Walker & Camille Ruiz
+
+For information email richard.walker@epfl.ch or rwalker1501@gmail.com
 *************************
 
 *****************
 Purpose
 *****************
-This repository contains the code and data necessary to reproduce the results contained in the paper, "Epidemiology of human culture: parietal rock art requires high population density" by Richard Walker, Anders Eriksson, Camille Ruiz, Taylor Howard, and Francesco Casalegno.
+This repository contains the code and data necessary to reproduce the results contained in the paper, "Diffusion of cultural innovation depends on demography: testing an epidemiological model of cultural diffusion with a global dataset of rock art sites and climate-based estimates of ancient population densities" by Richard Walker, Anders Eriksson, Camille Ruiz, Taylor Howard, and Francesco Casalegno.
 
 The parameters for each analysis are contained in an "experiment parameters" file. By modifying these parameters users can run new analyses without modifying the code.
 
