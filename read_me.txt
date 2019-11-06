@@ -360,6 +360,9 @@ A .csv file (separator=";") showing the quantitative results of the analysis. Th
 - Mean population density for globals
 - Standard deviation of density for sites
 - Standard deviation of density for globals
+- Results of tests for difference between distributions of sites and globals
+    * Two sample Kolmogoroff-Smirnoff test; D and p values
+    * Mann-Whitney U test: U and p values
 - Results of the maximum likelihood estimation for the epidemiological model
     * Confidence intervals for the inferred threshold
     * Maximum likelihood estimate of the gamma parameter
@@ -400,7 +403,7 @@ For each cell, at each date considered in the analysis, the "merged_df" file pro
 Other files
 ---
 
-In addition to the files just described, the "processed targets", and "globals" directories contain a number of additional
+In addition to the files just described, the "processed targets", and "globals" directories contain a number of additional files, used for internal purposes. Do not delete these files.
 
 
 
