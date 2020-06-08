@@ -6,7 +6,7 @@
     "bin_size": 1,
     "max_population": 34,
     "max_for_uninhabited": 1,
-    "max_date": 46000, 
+    "max_date": 46300, 
     "min_date": 0, 
     "max_lat": 60, 
     "min_lat": -40, 
