@@ -6,7 +6,7 @@
     "bin_size": 1,
     "max_population": 34,
     "max_for_uninhabited": 1,
-    "max_date": 46000, 
+    "max_date": 46300, 
     "min_date": 0, 
     "max_lat": 60, 
     "min_lat": -40, 
@@ -22,6 +22,6 @@
     "remove_not_direct_targets": false,
     "remove_not_exact_age_targets": false,
     "remove_not_figurative_targets": false,
-    "save_processed_targets": false,
+    "save_processed_targets": true,
     "min_globals":1
 }
