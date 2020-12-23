@@ -83,7 +83,7 @@ def write_target_table(a_file, dataframe, time_window):
         if target_df['is_exact'].values[0]:
             exact = 'exact'
 
-        sample_mean = target_df[target_df.type == 's']['density'].values[0];
+        site_mean = target_df[target_df.type == 's']['density'].values[0];
 
         a_file.write("\"" + str(location) + "\";")
         a_file.write(str(latitude) + ";")
@@ -92,53 +92,53 @@ def write_target_table(a_file, dataframe, time_window):
         a_file.write(str(date_to) + ";")
         a_file.write(str(direct) + ";")
         a_file.write(str(exact) + ";")
-        a_file.write(str(sample_mean) + ";")
+        a_file.write(str(site_mean) + ";")
         a_file.write("\n")
         
 def write_bin_table(a_file, bin_values_df, min_globals):
 
-    write_label(a_file, "Distribution of values for sites and globals")
+    write_label(a_file, "Distribution of values for sites and non_sites")
 
-    columns = ['Bin value', 'Sites', 'Globals', 'Detection Frequency', 'Relative Frequency of Sites', 'Relative Frequency of Globals']
+    columns = ['Bin value', 'Sites', 'Non_sites', 'Detection Ratio', 'Relative Frequency of Sites', 'Relative Frequency of Non_sites']
     write_headers(a_file,columns,";")
     bin_array = bin_values_df['bin_array'].values
-    sample_counts = bin_values_df['sample_counts'].values
-    global_counts = bin_values_df['global_counts'].values
+    site_counts = bin_values_df['site_counts'].values
+    non_site_counts = bin_values_df['non_site_counts'].values
     likelihood_ratios = bin_values_df['likelihood_ratios'].values
-    p_samples = bin_values_df['p_samples'].values
-    p_globals = bin_values_df['p_globals'].values
+    p_site = bin_values_df['p_sites'].values
+    p_non_sites = bin_values_df['p_non_sites'].values
 
     for i in range(0, len(bin_array)):
         a_file.write(str(bin_array[i]) + ';')
-        a_file.write(str(sample_counts[i]) + ';')
-        a_file.write(str(global_counts[i]) + ';')
+        a_file.write(str(site_counts[i]) + ';')
+        a_file.write(str(non_site_counts[i]) + ';')
         a_file.write('{:.4f}'.format(likelihood_ratios[i]) + ';')
-        a_file.write('{:.4f}'.format(p_samples[i]) + ';')
-        a_file.write('{:.4f}'.format(p_globals[i]) + ";")
+        a_file.write('{:.4f}'.format(p_site[i]) + ';')
+        a_file.write('{:.4f}'.format(p_non_sites[i]) + ";")
         a_file.write("\n")
 
 def write_analysis(f2, stat_dictionary):
 
     write_label(f2, "Statistics")
 
-    f2.write('Total sites; '+str(stat_dictionary['total_samples'])+'\n')
-    f2.write('Total globals; '+str(stat_dictionary['total_globals'])+'\n\n')
+    f2.write('Total sites; '+str(stat_dictionary['total_sites'])+'\n')
+    f2.write('Total non-sites; '+str(stat_dictionary['total_non_sites'])+'\n\n')
 
-    f2.write('Median density for sites; '+'{:.2f}'.format(stat_dictionary['median_samples'])+'\n')
-    f2.write('Median density for globals; '+'{:.2f}'.format(stat_dictionary['median_globals'])+'\n\n')
+    f2.write('Median density for sites; '+'{:.2f}'.format(stat_dictionary['median_sites'])+'\n')
+    f2.write('Median density for non-sites; '+'{:.2f}'.format(stat_dictionary['median_non_sites'])+'\n\n')
 
-    f2.write('Mean density for sites; '+'{:.2f}'.format(stat_dictionary['mean_samples'])+'\n')
-    f2.write('Mean density for globals; '+'{:.2f}'.format(stat_dictionary['mean_globals'])+'\n\n')
+    f2.write('Mean density for sites; '+'{:.2f}'.format(stat_dictionary['mean_sites'])+'\n')
+    f2.write('Mean density for non-sites; '+'{:.2f}'.format(stat_dictionary['mean_non_sites'])+'\n\n')
 
-    f2.write('Standard deviation of density for sites; '+'{:.2f}'.format(stat_dictionary['std_samples'])+'\n')
-    f2.write('Standard deviation of density for globals; '+'{:.2f}'.format(stat_dictionary['std_globals'])+'\n\n')
-    f2.write('KS test  for samples vs globals d=:'+'{:.2f}'.format(stat_dictionary['ks_d'])+'\n')
-    f2.write('KS test for samples vs globals p=:'+' {:.6f}'.format(stat_dictionary['ks_p'])+'\n')
-    f2.write('Mann-Whitney test  for samples vs globals u=:'+'{:.2f}'.format(stat_dictionary['mw_u'])+'\n')
-    f2.write('Mann-Whitney for samples vs globals p=:'+' {:.6f}'.format(stat_dictionary['mw_p'])+'\n')
+    f2.write('Standard deviation of density for sites; '+'{:.2f}'.format(stat_dictionary['std_sites'])+'\n')
+    f2.write('Standard deviation of density for non-sites; '+'{:.2f}'.format(stat_dictionary['std_non_sites'])+'\n\n')
+    f2.write('KS test  for sites vs non-sites d=:'+'{:.2f}'.format(stat_dictionary['ks_d'])+'\n')
+    f2.write('KS test for sites vs non-sites p=:'+' {:.6f}'.format(stat_dictionary['ks_p'])+'\n')
+    f2.write('Mann-Whitney test  for sites vs non-sites u=:'+'{:.2f}'.format(stat_dictionary['mw_u'])+'\n')
+    f2.write('Mann-Whitney for sites vs non-sites p=:'+' {:.6f}'.format(stat_dictionary['mw_p'])+'\n')
 
     
-def write_likelihood_results(aFile, max_gamma, max_zetta, max_eps, max_likelihood, thresholds,model ):
+def write_likelihood_results(aFile, max_gamma, max_zetta, max_eps, max_likelihood, thresholds,model,phi ):
         write_label(aFile, "Results of max likelihood analysis for "+model+" model")
         if model=='epidemiological' or model=='richard':
             aFile.write('Threshold 0.025;'+ '{:.2f}'.format(thresholds[0])+"\n")
@@ -152,14 +152,17 @@ def write_likelihood_results(aFile, max_gamma, max_zetta, max_eps, max_likelihoo
             aFile.write("Max eps;"+'{:.5f}'.format(max_eps)+"\n")
 #            aFile.write("Max comm="+'{:.2f}'.format(max_comm)+"\n")
         aFile.write("Max zetta;"+'{:.7f}'.format(max_zetta)+"\n")
-        aFile.write("Max likelihood;"+'{:.0f}'.format(max_likelihood)+"\n")
+        aFile.write("Max likelihood;"+'{:.2f}'.format(max_likelihood)+"\n")
         if model=='epidemiological':
-            k=3
+            if phi==2:
+                k=3
+            else:
+                k=4          
         else:
             if model=='proportional':
                 k=2
             else:
-                if model=='constant':
+                if model=='null':
                     k=1                               
         aFile.write("AIC;"+ '{:.2f}'.format(2*k-2*max_likelihood)+"\n")
 

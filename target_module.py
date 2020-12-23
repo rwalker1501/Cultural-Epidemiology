@@ -8,7 +8,7 @@ from os.path import isfile, join
 from classes_module import Target
 
 def process_targets(base_path, population_data, target_list, parameters):
-
+    infer_missing_values=parameters['infer_missing_values']
     min_date = parameters['min_date'];
     max_date = parameters['max_date'];
     min_lat = parameters['min_lat'];
@@ -44,12 +44,14 @@ def process_targets(base_path, population_data, target_list, parameters):
         elif globals_type == "France and Spain":
             globals_dataframe = load_bin_globals_for_francespain(population_data, min_date, max_date, max_for_uninhabited)
         elif globals_type == "All":
-                globals_dataframe = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
+            globals_dataframe = load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
+        elif globals_type=="Rest of world":
+            globals_dataframe = load_bin_globals_for_rest_of_world(population_data, min_lat, max_lat,min_date, max_date,max_for_uninhabited)
 
-        print("Generating globals...")
+        print("Generating populations...")
         globals_dataframe.to_csv(globals_dataframe_path, sep=";")
     else:
-        print("Reading globals file...")
+        print("Reading population file...")
         globals_dataframe = pd.read_csv(globals_dataframe_path, sep=";");
 
     ###################################################
@@ -65,18 +67,18 @@ def process_targets(base_path, population_data, target_list, parameters):
 
     # extract dataframe rank
     print("Extracting sites from targets...")
-    new_df = extract_dataframe(globals_dataframe, target_list, population_data.time_window)
+    new_df = extract_dataframe(globals_dataframe, target_list, population_data.time_window,infer_missing_values)
     # new_df = extract_dataframe(population_data, target_list, max_for_uninhabited)
     
     # get closest site to target
     new_df['distance'] = (new_df['latitude']-new_df['target_lat'])*(new_df['latitude']-new_df['target_lat']) + (new_df['longitude']-new_df['target_lon'])*(new_df['longitude']-new_df['target_lon'])
     new_df['rank'] = new_df.groupby(['target_lat', 'target_lon', 'period'])['distance'].rank(method="first",ascending=True);
     
-    samples_df = new_df[(new_df['type'] == 's') & (new_df['rank'] < 2)];
-    samples_df = samples_df.groupby(['density', 'latitude', 'longitude', 'period', 'type']).first().reset_index();
-    controls_df = new_df[new_df['type'] == 'c'];
+    sites_df = new_df[(new_df['type'] == 's') & (new_df['rank'] < 2)];
+    sites_df = sites_df.groupby(['density', 'latitude', 'longitude', 'period', 'type']).first().reset_index();
+    non_sites_df = new_df[new_df['type'] == 'c'];
 
-    dataframe = pd.concat([samples_df, controls_df]);
+    dataframe = pd.concat([sites_df, non_sites_df],sort=True);
 
     if parameters["save_processed_targets"]:
         print("Saving sites dataframe...")
@@ -87,7 +89,7 @@ def process_targets(base_path, population_data, target_list, parameters):
 
     return target_list, dataframe, globals_dataframe
 
-def extract_dataframe(globals_dataframe, target_list, time_window):
+def extract_dataframe(globals_dataframe, target_list, time_window,infer_missing_values):
     dataframes = []
     for key, target in target_list.iteritems():
         date_from = target.date_from
@@ -100,18 +102,26 @@ def extract_dataframe(globals_dataframe, target_list, time_window):
 
 
         if lon_e < lon_w:
-            controls_df = latstrip_df.loc[~latstrip_df.longitude.between(lon_e, lon_w)]
-            samples_df = latstrip_df.loc[latstrip_df.longitude.between(lon_e, lon_w)]
+            non_sites_df = latstrip_df.loc[~latstrip_df.longitude.between(lon_e, lon_w)]
+            sites_df = latstrip_df.loc[latstrip_df.longitude.between(lon_e, lon_w)]
         else:
-            controls_df = latstrip_df.loc[~(latstrip_df.longitude.between(lon_e, 360) | latstrip_df.longitude.between(0, lon_w))]
-            samples_df = latstrip_df.loc[(latstrip_df.longitude.between(lon_e, 360) | latstrip_df.longitude.between(0, lon_w))]
+            non_sites_df = latstrip_df.loc[~(latstrip_df.longitude.between(lon_e, 360) | latstrip_df.longitude.between(0, lon_w))]
+            sites_df = latstrip_df.loc[(latstrip_df.longitude.between(lon_e, 360) | latstrip_df.longitude.between(0, lon_w))]
+        #If infer_missing_values is true, fills in 0 densities for targets not found in database
+        if sites_df.empty and infer_missing_values:
+            adict={}
+            adict.update({'density':0})
+            adict.update({'latitude':lat_n})
+            adict.update({'longitude':lon_e})
+            adict.update({'period':date_from})
+            row_df=pd.DataFrame(adict,index=[0])
+            sites_df=sites_df.append(row_df)
+        non_sites_df['type'] = 'c';
+        non_sites_df['pseudo_type'] = 'b';
+        sites_df['type'] = 's';
+        sites_df['pseudo_type'] = 'a';
 
-        controls_df['type'] = 'c';
-        controls_df['pseudo_type'] = 'b';
-        samples_df['type'] = 's';
-        samples_df['pseudo_type'] = 'a';
-
-        df = pd.concat([controls_df, samples_df])
+        df = pd.concat([non_sites_df, sites_df])
         df['target_id'] = key;
         df['target_location'] = target.location;
         df['target_date_from'] = target.date_from
@@ -122,7 +132,7 @@ def extract_dataframe(globals_dataframe, target_list, time_window):
         df['is_exact'] = target.age_estimation.lower() == "exact age"
 
         dataframes.append(df);
-        if controls_df.empty:
+        if non_sites_df.empty:
             print(key);
             print(lon_e)
             print(lon_w)
@@ -131,6 +141,7 @@ def extract_dataframe(globals_dataframe, target_list, time_window):
 
 
 def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited):
+    remove_uninhabited=False
     lat_np = population_data.lat_array
     lon_np = population_data.lon_array
     time_np = population_data.time_array
@@ -178,7 +189,7 @@ def load_all_globals_brute(population_data, min_lat, max_lat, min_date, max_date
     new_df = pd.DataFrame({'density': densities, 'period': periods, 'latitude': latitudes, 'longitude': longitudes})
     print("Filtering...")
     new_df = new_df[new_df.density > max_for_uninhabited];
-    print("Globals dataframe generated.")
+    print("Population dataframe generated.")
 
     return new_df
 
@@ -190,13 +201,21 @@ def load_bin_globals_for_no_equatorials (population_data, min_lat, max_lat, min_
 def load_bin_globals_for_australia(population_data, min_date, max_date, max_for_uninhabited):
     df = load_all_globals_brute(population_data, -40, -11, min_date, max_date, max_for_uninhabited)
     new_df = df.loc[(df.latitude.between(-39.16,-11.17)) & (df.longitude.between(112.14,154.86))]
-    print(new_df)
     return new_df
 
 def load_bin_globals_for_francespain(population_data, min_date, max_date, max_for_uninhabited):
     df = load_all_globals_brute(population_data, 34, 60, min_date, max_date, max_for_uninhabited)
-    new_df = df.loc[(df.latitude.between(35,50.84)) & ((df.longitude.between(0, 7)) | (df.longitude.between(350, 360)))]
+    new_df = df.loc[(df.latitude.between(35.92,51.09)) & ((df.longitude.between(0, 8.12)) | (df.longitude.between(350.12, 360)))]
     return new_df
+
+def load_bin_globals_for_rest_of_world(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited):
+    df = load_bin_globals_for_no_equatorials(population_data, min_lat, max_lat, min_date, max_date, max_for_uninhabited)
+    df_minus_australia = df.loc[~((df.latitude.between(-39.16,-11.17)) & (df.longitude.between(112.14,154.86)))]
+    df_rest_of_world=df_minus_australia.loc[~((df.latitude.between(35,50.84)) & ((df.longitude.between(0, 7)) | (df.longitude.between(350, 360))))]
+    return df_rest_of_world
+    
+    
+    
 
 def read_target_list_from_csv(filename):
 
@@ -323,19 +342,19 @@ def create_binned_column(dataframe, new_column_name, base_column_name, interval)
 def generate_merged_dataframe(base_path, directory, dataframe, globals_dataframe, save_processed_targets):
 
     temp_globals_df = globals_dataframe.copy();
-    temp_samples_df = dataframe.copy();
-    temp_samples_df = temp_samples_df[temp_samples_df.type == 's'];
+    temp_sites_df = dataframe.copy();
+    temp_sites_df = temp_sites_df[temp_sites_df.type == 's'];
 
      # DELETE COLUMNS
-    temp_samples_df.drop(["target_id","samples_growth_coefficient", "distance", "is_dir", "is_exact", "pseudo_type", "rank", "target_date_from", "target_date_to", "target_lat", "target_location", "target_lon","type"], axis=1, inplace = True)
+    temp_sites_df.drop(["target_id","sites_growth_coefficient", "distance", "is_dir", "is_exact", "pseudo_type", "rank", "target_date_from", "target_date_to", "target_lat", "target_location", "target_lon","type"], axis=1, inplace = True)
 
-    # is_sample
-    temp_globals_df['is_sample'] = 0;    
-    temp_samples_df['is_sample'] = 1;
+    # is_site
+    temp_globals_df['is_site'] = 0;    
+    temp_sites_df['is_site'] = 1;
 
     # MERGE
-    to_concat = [temp_globals_df, temp_samples_df]
-    merged_df = pd.concat(to_concat);
+    to_concat = [temp_globals_df, temp_sites_df]
+    merged_df = pd.concat(to_concat,sort=True);
   #  merged_df.drop(["Unnamed: 0"], axis = 1, inplace = True)
     
 

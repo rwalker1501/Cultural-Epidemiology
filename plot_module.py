@@ -4,6 +4,7 @@ from __future__ import division
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+#os.environ["PROJ_LIB"] ="/Users/richard/opt/anaconda3/share/proj/epsg"
 from matplotlib.pyplot import cm 
 from matplotlib.font_manager import FontProperties
 from mpl_toolkits.basemap import Basemap
@@ -11,30 +12,30 @@ from matplotlib.patches import Polygon
 
 
 
-def plot_stat_graphs(stat_dictionary, bin_values_df, population_data, bin_size, max_population, directory, new_path):
+def plot_stat_graphs(stat_dictionary, bin_values_df, population_data, bin_size, max_population,threshold, directory, new_path):
 
     bin_array = bin_values_df['bin_array'];
-    p_samples = bin_values_df['p_samples'];
-    p_globals = bin_values_df['p_globals'];
-    cum_p_samples = bin_values_df['cum_p_samples'];
-    cum_p_globals = bin_values_df['cum_p_globals'];
+    p_sites = bin_values_df['p_sites'];
+    p_non_sites = bin_values_df['p_non_sites'];
+    cum_p_sites = bin_values_df['cum_p_sites'];
+    cum_p_non_sites = bin_values_df['cum_p_non_sites'];
     likelihood_ratios = bin_values_df['likelihood_ratios'];
-    median_samples = stat_dictionary['median_samples'];
-    median_globals = stat_dictionary['median_globals'];
+    median_sites = stat_dictionary['median_sites'];
+    median_non_sites = stat_dictionary['median_non_sites'];
 
     # plot graphs
-    plot_p_graphs(bin_array, p_samples, p_globals, bin_size, directory, new_path)
-    plot_cumulative_p_graphs(bin_array, cum_p_samples,cum_p_globals, bin_size, median_samples, median_globals, directory, new_path)
+    plot_p_graphs(bin_array, p_sites, p_non_sites, bin_size, directory, new_path)
+    plot_cumulative_p_graphs(bin_array, cum_p_sites,cum_p_non_sites, bin_size, median_sites, median_non_sites, threshold,directory, new_path)
 
-def plot_p_graphs(bins, p_samples, p_globals, bin_size,identifier, file_path):
+def plot_p_graphs(bins, p_sites, p_non_sites, bin_size,identifier, file_path):
     add=bin_size/2
     bins=[x+add for x in bins]
     fig = plt.figure()
     ax = fig.add_subplot(111)
     width=0.8
     # ax.set_title(title)
-    ax.bar(np.asarray(bins)-width/2,p_samples,width=0.4,color='b', label="Samples")
-    ax.bar(np.asarray(bins)+width/2, p_globals,width=0.4,color='r',label="Globals")
+    ax.bar(np.asarray(bins)-width/2,p_sites,width=0.4,color='b', label="Sites")
+    ax.bar(np.asarray(bins)+width/2, p_non_sites,width=0.4,color='r',label="Non_sites")
     plt.gca().set_ylim(0, 0.40)
     
     plt.ylabel("Relative detection frequency")
@@ -43,20 +44,21 @@ def plot_p_graphs(bins, p_samples, p_globals, bin_size,identifier, file_path):
     fig.savefig(os.path.join(file_path, str(identifier) + "_relative_frequencies.png"))
     plt.close()
     
-def plot_cumulative_p_graphs(bins, cum_p_samples, cum_p_globals, bin_size, median_samples,median_globals,identifier, file_path):
+def plot_cumulative_p_graphs(bins, cum_p_sites, cum_p_non_sites, bin_size, median_sites,median_non_sites,threshold,identifier, file_path):
     add=bin_size/2
     bins=[x+add for x in bins]
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
-    ax.plot(bins,cum_p_samples,'b', label="Samples")
-    ax.plot(bins, cum_p_globals,'r',label="Globals")
+    ax.plot(bins,cum_p_sites,'b', label="Sites")
+    ax.plot(bins, cum_p_non_sites,'r',label="Non-sites")
     plt.gca().set_ylim(0, 1.0);
-    ax.axvline(median_samples, color='b', linestyle='--',label="Median samples")
-    ax.axvline(median_globals, color='r', linestyle='--', label="Median globals")
-    plt.ylabel("Relative detection frequency (cumulated)")
+ #   ax.axvline(median_sites, color='b', linestyle='--',label="Median sites")
+  #  ax.axvline(median_non_sites, color='r', linestyle='--', label="Median non-sites")
+    ax.axvline(threshold, color='g', linestyle='--', label="Critical threshold")
+    plt.ylabel("Relative frequency (cumulated)")
     plt.xlabel(r'Population density (individuals/$100km^2$)')
-    plt.legend(title= "Legend")
+ #   plt.legend(title= "Legend")
     fig.savefig(os.path.join(file_path, str(identifier) + "_relative_frequencies_cumulative.png"))
     plt.close()
 
@@ -268,7 +270,7 @@ def plot_densities_on_map_by_time_range(population_data, start_time, end_time):
     plt.savefig(map_path, dpi=500)
     plt.close()
     
-def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, samples_counts2, controls_counts2, model,directory,file_path):
+def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, sites_counts2, controls_counts2, model,directory,file_path):
     # Adds a small positive contant to each item in acc to avoid zeros
     max_acc=acc.max(axis=0) *1e-10   #largest accumulated likelihood for a given rho multiplied by a small constant - gives roughly constant result
     acc_plus=(acc+max_acc)
@@ -317,8 +319,8 @@ def plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt
         # Add line showing best fit of model
     ax.plot(rho_bins,pred_int[:,2],linewidth=1, color='blue',antialiased=True)
     # Add line showing (coursely binned) experimental values
-    #ax.bar(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2),width=0.8,edgecolor='k', color='None',linestyle='solid',fill='False',antialiased=True)
-    ax.plot(rho_bins2,np.true_divide(samples_counts2, samples_counts2+controls_counts2),color='black', marker='o', markersize=3,linestyle='None',antialiased=True)
+    #ax.bar(rho_bins2,np.true_divide(sites_counts2, sites_counts2+controls_counts2),width=0.8,edgecolor='k', color='None',linestyle='solid',fill='False',antialiased=True)
+    ax.plot(rho_bins2,np.true_divide(sites_counts2, sites_counts2+controls_counts2),color='black', marker='o', markersize=3,linestyle='None',antialiased=True)
     ax.set_xlabel(r'Population density (individuals/$100km^2$)')
     ax.set_ylabel(r'Detection frequency')
     plt.tight_layout()
@@ -342,6 +344,24 @@ def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path
         plt.xlim(min(gamma_v),max(gamma_v))
         fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_gamma.png"
         fig2.savefig(fig_path)
+        total_p=np.sum(p_gamma)
+        relative_p=np.true_divide(p_gamma,total_p)
+        acc_relative_p=np.cumsum(relative_p)
+        interpolated=np.interp([0.025, 0.25, 0.5, 0.75, 0.975], acc_relative_p, gamma_v,)
+        plt.close()
+        
+    dim1=np.mean(exp_lnlminusmax,axis=2)  
+    if model=='epidemiological':
+        fig2b = plt.figure();
+        p_gamma = np.squeeze(np.mean(dim1,axis=(1)))
+        p_gamma=np.true_divide(p_gamma,np.trapz(p_gamma,gamma_v))
+        ax2=fig2b.add_subplot(111)
+        ax2.plot(gamma_v**2,p_gamma**2);
+        plt.xlabel('threshold')
+        plt.ylabel('Pdf')
+        plt.xlim(min(gamma_v)**2,max(gamma_v)**2)
+        fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+model+"_threshold.png"
+        fig2b.savefig(fig_path)
         total_p=np.sum(p_gamma)
         relative_p=np.true_divide(p_gamma,total_p)
         acc_relative_p=np.cumsum(relative_p)
@@ -378,6 +398,8 @@ def plot_parameter_values(lnL,gamma_v, zetta_v, eps_v, model,directory,file_path
     fig_path=os.path.join(file_path, str(directory)) + "/"+directory+"_"+ model+"_zeta.png"
     fig4.savefig(fig_path)
     plt.close(fig4)
+    
+    
     if model=='epidemiological':
         return(interpolated)
     else:

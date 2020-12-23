@@ -18,6 +18,7 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
  # Zetta is the base probability that a  territorial unit) contains at least one site
  # Eps is an error - means that there is a positive probability that a site is present even in a territory with below threshold population
  
+    phi=parameters['phi']
     if parameters['high_resolution']:
         res_gamma = 101
         res_zetta = 101
@@ -31,39 +32,39 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
     zetta_v=np.exp(np.linspace(log(parameters['zetta_start']),log(parameters['zetta_end']),num=res_zetta,endpoint=False)) 
 
 
-    if model=='constant':
+    if model=='null':
         eps_v=np.array([1])
     else:
         eps_v=np.linspace(parameters['eps_start'],parameters['eps_end'],num=res_eps,endpoint=False)
     rho_bins=np.linspace(0,33,num=300,endpoint=False)
     rho_bins_4_python=np.append(rho_bins,33)
-    # When we show the actual frequencies in Figure 1 - we use smaller bins - with a larger number of samples per bin. This makes the graph easier to read
+    # When we show the actual frequencies in Figure 1 - we use smaller bins - with a larger number of sites per bin. This makes the graph easier to read
     # bin_boundaries2_4_python contains the second type of bis
     bin_width=2 
     bin_boundaries2_4_python=np.linspace(0,33,num=16,endpoint=False) 
     bin_boundaries2_4_python=np.append(bin_boundaries2_4_python,33)
     rho_bins2=bin_boundaries2_4_python[0:len(bin_boundaries2_4_python)-1]+bin_width/2 
-    # Count the number of samples and controls in each bin
-    samples_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=rho_bins_4_python)[0] 
-    controls_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=rho_bins_4_python) [0]
+    # Count the number of sites and non_sites in each bin
+    sites_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_site==1],bins=rho_bins_4_python)[0] 
+    controls_counts=np.histogram(merged_dataframe['density'][merged_dataframe.is_site==0],bins=rho_bins_4_python) [0]
     # Repeat for the larger bins
-    control_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==0],bins=bin_boundaries2_4_python)[0]
-    sample_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_sample==1],bins=bin_boundaries2_4_python)[0]
-    # Compute total number of controls and samples
+    control_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_site==0],bins=bin_boundaries2_4_python)[0]
+    site_counts2=np.histogram(merged_dataframe['density'][merged_dataframe.is_site==1],bins=bin_boundaries2_4_python)[0]
+    # Compute total number of controls and sites
     n_controls=np.sum(controls_counts)  
-    n_samples=np.sum(samples_counts) 
+    n_sites=np.sum(sites_counts) 
     # Avoid underflow in calculations
-    l_shift=n_samples*(log(float(n_samples)/float(n_controls))-1)
+    l_shift=n_sites*(log(float(n_sites)/float(n_controls))-1)
     # Computes size of parameter ranges according to range actually chosen - could be cleaned up
     n_gamma=len(gamma_v)
     n_eps=len(eps_v)
     n_zetta=len(zetta_v)
     #  Kills gamma loop for constant and proportional models
-    if model=='constant' or model=='proportional':
+    if model=='null' or model=='proportional':
         n_gamma=1
         # Set up a (population data specific) range of possible values for the likelihood of a given set of observations
     acc_likelihoods=np.linspace(parameters["y_acc_start"],parameters["y_acc_end"],num=2001) 
-    #  Set up an array representing the accumulated likelihood of a given set of sample and control counts 
+    #  Set up an array representing the accumulated likelihood of a given set of site and control counts 
     #  Across all possible values of the parameters
     acc=np.zeros((len(acc_likelihoods),len(rho_bins)))
     lnL=np.zeros((n_gamma,n_eps,n_zetta))
@@ -76,9 +77,9 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
         my_gamma=float(gamma_v[i_gamma]) 
         # Compute the predicted size of the infected population  as a proportion of population (p_infected) for all possible values of rho_bins, given the value of gamma. Guarantee it is always 0 or greater
         if model=='epidemiological':
-            rho_star=my_gamma**2
-            p_infected=np.asarray([compute_prop_I(rho,rho_star)for rho in rho_bins])
-        if model=='proportional' or model=='constant':
+            rho_star=my_gamma**phi
+            p_infected=np.asarray([compute_prop_I(rho,rho_star,phi)for rho in rho_bins])
+        if model=='proportional' or model=='null':
             p_infected=rho_bins/max(rho_bins)
         for i_zetta in range(0,n_zetta):
             for i_eps in range (0, n_eps):
@@ -88,18 +89,18 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                  if model=='proportional':
                      p_predicted=compute_proportional_model(p_infected,my_zetta,my_eps)
                  else:
-                     if model=='constant':
+                     if model=='null':
                          p_predicted=compute_constant_model(p_infected,my_zetta,my_eps)
                      else:
                          if model=='epidemiological':
                              p_predicted=compute_epidemiological_model(p_infected,rho_bins,my_zetta,my_eps)
-                             # Computes the log likelihood of obtaining the OBSERVED number of samples at a given value of rho_bins, given the predicted number of samples
+                             # Computes the log likelihood of obtaining the OBSERVED number of sites at a given value of rho_bins, given the predicted number of sites
                   
-                 log_samples=np.dot(samples_counts,np.log(p_predicted)) 
+                 log_sites=np.dot(sites_counts,np.log(p_predicted)) 
                  # The same for controls
                  log_controls=np.dot(controls_counts,np.log(1-p_predicted)) 
-                 # Computes the log likelihood of a certain number of samples AND a certain number of controls (for a given value of rho_bins)
-                 LL=log_samples+log_controls
+                 # Computes the log likelihood of a certain number of sites AND a certain number of controls (for a given value of rho_bins)
+                 LL=log_sites+log_controls
                  # Finds the parameter values with the maximum likelihood
                  if LL>max_LL:
                      max_LL=LL
@@ -109,15 +110,15 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                      max_likelihood=LL
                  if np.isnan(np.min(LL)):
                      print 'LL is nan'
-                     print 'nSamples=',n_samples
+                     print 'nsites=',n_sites
                      print 'nControls=',n_controls
                      print 'my_gamma=',my_gamma
                      print 'my_zetta=',my_zetta
                      print 'my_eps=',my_eps
-                     print 'log_samples',log_samples
+                     print 'log_sites',log_sites
                      print 'log_controls', log_controls
                      print 'p_predicted=', p_predicted
-                     print 'samples_counts=', samples_counts
+                     print 'sites_counts=', sites_counts
                      print 'controls_counts=',controls_counts
                      sys.exit()
                          
@@ -137,17 +138,19 @@ def compute_likelihood_model(directory,results_path, population_data,merged_data
                      acc[x_coord,y_coord]=acc[x_coord,y_coord]+L
 
     interpolated_gammas=plm.plot_parameter_values(lnL,gamma_v, zetta_v, eps_v,model,directory,results_path)
-    thresholds=interpolated_gammas**2
+    thresholds=interpolated_gammas**phi
+ #   site_lte_threshold=[merged_dataframe.is_site==1]
     opt_threshold=thresholds[2]  #Not sure about this
-    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, sample_counts2, control_counts2, model,directory,results_path)
+    plm.plot_maximum_likelihood(acc,rho_bins,rho_bins2,acc_likelihoods, gamma_v, opt_threshold, site_counts2, control_counts2, model,directory,results_path)
     return(max_gamma, max_zetta, max_eps, max_likelihood,thresholds)
     
 
-def compute_prop_I(rho,rho_star):
+def compute_prop_I(rho,rho_star,phi):
+       
         if rho<=rho_star:
             prop_I=0
         else:
-            prop_I=1-sqrt(rho_star/rho)
+            prop_I=1-(rho_star/rho)**float(1/phi)
         return prop_I
     
 def compute_epidemiological_model(p_infected,rho_bins,my_zetta,my_eps):
@@ -188,10 +191,11 @@ def compute_constant_model(p_infected, my_zetta,my_eps):
     return(p_predicted)
 
 
-def process_dataframe(dataframe):
+def process_dataframe(dataframe,infer_missing_values):
+    remove_uninhabited=False
 
     conditions = [];
-    samples_growth_coefficients = []
+    sites_growth_coefficients = []
     valid_ids = []
 
     target_ids = dataframe.target_id.unique();
@@ -200,27 +204,30 @@ def process_dataframe(dataframe):
 
     for target_id in target_ids:
         target_df = dataframe[dataframe.target_id==target_id]
-        sample_target_df = target_df[target_df.type == 's']
-        if np.isnan(sample_target_df['density'].median()):
+        site_target_df = target_df[target_df.type == 's']
+        if np.isnan(site_target_df['density'].median()) and infer_missing_values==False:
             print('Removing target: ' + str(target_id));
             removed_targets.append(target_id);
             dataframe = dataframe[dataframe.target_id != target_id];
-            continue;
+            continue;     
 
-        # extract all periods and all population as arrays from the samples dataframe
-        sample_times = sample_target_df['period'].values
-        sample_populations = sample_target_df['density'].values
+        # extract all periods and all population as arrays from the sites dataframe
+        site_times = site_target_df['period'].values
+        if np.isnan(site_target_df['density'].median()):
+            site_populations=0
+        else:
+            site_populations = site_target_df['density'].values
 
-        # compute growth coefficients for samples
-        growth_coefficient_samples=compute_growth_coefficient(sample_times, sample_populations)
+        # compute growth coefficients for sites
+        growth_coefficient_sites=compute_growth_coefficient(site_times, site_populations)
 
         valid_ids.append(target_id);
-        samples_growth_coefficients.append(growth_coefficient_samples)
+        sites_growth_coefficients.append(growth_coefficient_sites)
 
     for target_id in valid_ids:
         conditions.append((dataframe['target_id'] == target_id));
 
-    dataframe['samples_growth_coefficient'] = np.select(conditions, samples_growth_coefficients);
+    dataframe['sites_growth_coefficient'] = np.select(conditions, sites_growth_coefficients);
     return dataframe, removed_targets;
 
 def compute_growth_coefficient(times, populations):
@@ -234,7 +241,7 @@ def compute_growth_coefficient(times, populations):
         return -1.
 
 
-def generate_bin_values_dataframe(dataframe, globals_dataframe, bin_size, max_population, minimum_globals):
+def generate_bin_values_dataframe(dataframe, globals_dataframe, bin_size, max_population, minimum_globals,n_removed):
 
     # minimum_bin=max_for_uninhabited
     minimum_bin = 0
@@ -257,69 +264,71 @@ def generate_bin_values_dataframe(dataframe, globals_dataframe, bin_size, max_po
     #we add bin_size/2 to get midpoint of each bin
     globals_dataframe['bin'] = globals_dataframe.bin_index*bin_size+minimum_bin
     bin_array = []
-    sample_counts = []
-    global_counts = []
+    site_counts = []
+    non_site_counts = []
     likelihood_ratios = []
-    p_samples = []
-    p_globals = []
+    p_sites = []
+    p_non_sites = []
 
     ##############
     # Get Totals #
     ##############
-    # total samples by summing contributions
-    # total globals by counting rows
-    total_samples = dataframe[dataframe.type=='s']['density'].count()
-    total_globals = globals_dataframe['density'].count()
+    # total sites by summing contributions
+    # total non_sites by counting rows
+    total_sites = dataframe[dataframe.type=='s']['density'].count()
+    total_non_sites = globals_dataframe['density'].count()
     
     #########################
     # Loop through each bin . data untrimmed - would be better to filter here#
     #########################
     current_bin = minimum_bin
+    
     while(current_bin < max_population):
         
         bin_array.append(current_bin)
-        # sample count: for all samples in the bin, sum all contributions
-        samples_dataframe = dataframe[dataframe.type=='s']
-        current_sample_count = samples_dataframe[samples_dataframe.bin == current_bin]['density'].count()
-        if np.isnan(current_sample_count):
-            current_sample_count = 0;
-        sample_counts.append(current_sample_count)
+        # site count: for all sites in the bin, sum all contributions
+        sites_dataframe = dataframe[dataframe.type=='s']
+        current_site_count = sites_dataframe[sites_dataframe.bin == current_bin]['density'].count()
+        if np.isnan(current_site_count):
+            current_site_count = 0;
+        site_counts.append(current_site_count)
         
-        # global count: count all globals dataframe rows in the bin
-        current_global_count = globals_dataframe[globals_dataframe.bin == current_bin]['density'].count()
-        if np.isnan(current_global_count):
-            current_global_count = 0;
-        global_counts.append(current_global_count)
+        # non_site count: count all globals dataframe rows in the bin
+        current_non_site_count = globals_dataframe[globals_dataframe.bin == current_bin]['density'].count()
+        if np.isnan(current_non_site_count):
+            current_non_site_count = 0;
+        non_site_counts.append(current_non_site_count)
         
-        # likelihood ratio: sample_count/global_count - probably no lomger necessary
+        # likelihood ratio: site_count/non_site_count - probably no lomger necessary
         likelihood_ratio = -1
-        if(current_global_count != 0):
-            likelihood_ratio = float(current_sample_count)/current_global_count
+        if(current_non_site_count != 0):
+            likelihood_ratio = float(current_site_count)/current_non_site_count
         likelihood_ratios.append(likelihood_ratio)
         
-        # p_sample: sample_count/total_samples
-        p_sample = -1
-        if total_samples > 0:
-            p_sample = float(current_sample_count)/total_samples
-        p_samples.append(p_sample)
+        # p_site: site_count/total_sites
+        p_site = -1
+        if total_sites > 0:
+            p_site = float(current_site_count)/total_sites
+        p_sites.append(p_site)
         
-        # p_global: global_count/total_globals
-        p_global = -1
-        if total_globals > 0:
-            p_global = float(current_global_count)/total_globals
-        p_globals.append(p_global)
+        # p_non_sites: site_count/total_non_sites
+        p_non_site = -1
+        if total_non_sites > 0:
+            p_non_site = float(current_non_site_count)/total_non_sites
+        p_non_sites.append(p_non_site)
 
         current_bin += bin_size
+        
 
-    df = pd.DataFrame({'bin_array': bin_array, 'sample_counts': sample_counts, 'global_counts': global_counts, 'likelihood_ratios': likelihood_ratios, 'p_samples': p_samples, 'p_globals': p_globals})
+    df = pd.DataFrame({'bin_array': bin_array, 'site_counts': site_counts, 'non_site_counts': non_site_counts, 'likelihood_ratios': likelihood_ratios, 'p_sites': p_sites, 'p_non_sites': p_non_sites})
 
     return df;
 
 def generate_statistics(dataframe, globals_dataframe, bin_values_df, minimum_globals):
 
-    trimmed_bin_values_df = bin_values_df[bin_values_df.global_counts > minimum_globals];
-    trimmed_bin_values_df['cum_p_samples'] = trimmed_bin_values_df.p_samples.cumsum();
-    trimmed_bin_values_df['cum_p_globals'] = trimmed_bin_values_df.p_globals.cumsum();
+    trimmed_bin_values_df = bin_values_df[bin_values_df.non_site_counts > minimum_globals];
+    trimmed_bin_values_df['cum_p_sites'] = trimmed_bin_values_df.p_sites.cumsum();
+    trimmed_bin_values_df['cum_p_non_sites'] = trimmed_bin_values_df.p_non_sites.cumsum();
 
     
     if len(trimmed_bin_values_df.index) < len(bin_values_df.index)/2:
@@ -329,22 +338,22 @@ def generate_statistics(dataframe, globals_dataframe, bin_values_df, minimum_glo
 
     stat_dictionary['trimmed_bin_values_df'] = trimmed_bin_values_df;
 
-    stat_dictionary['total_samples'] = dataframe[dataframe.type=='s']['density'].count()
-    stat_dictionary['total_globals'] = globals_dataframe ['density'].count()
+    stat_dictionary['total_sites'] = dataframe[dataframe.type=='s']['density'].count()
+    stat_dictionary['total_non_sites'] = globals_dataframe ['density'].count()
 
-    stat_dictionary['median_samples'] = dataframe[dataframe.type=='s']['density'].median()
-    stat_dictionary['median_globals'] = globals_dataframe ['density'].median()
-
-
-    stat_dictionary['mean_samples'] = dataframe[dataframe.type=='s']['density'].mean()
-    stat_dictionary['mean_globals'] = globals_dataframe ['density'].mean()
-
-    stat_dictionary['std_samples'] = dataframe[dataframe.type=='s']['density'].std()
-    stat_dictionary['std_globals'] = globals_dataframe ['density'].std();
+    stat_dictionary['median_sites'] = dataframe[dataframe.type=='s']['density'].median()
+    stat_dictionary['median_non_sites'] = globals_dataframe ['density'].median()
 
 
-    trimmed_p_samples = trimmed_bin_values_df['p_samples'].values;
-    trimmed_p_globals = trimmed_bin_values_df['p_globals'].values;
-    stat_dictionary['ks_d'], stat_dictionary['ks_p']=ks_2samp(trimmed_p_samples,trimmed_p_globals)
-    stat_dictionary['mw_u'],stat_dictionary['mw_p']=mannwhitneyu(trimmed_p_samples,trimmed_p_globals)
+    stat_dictionary['mean_sites'] = dataframe[dataframe.type=='s']['density'].mean()
+    stat_dictionary['mean_non_sites'] = globals_dataframe ['density'].mean()
+
+    stat_dictionary['std_sites'] = dataframe[dataframe.type=='s']['density'].std()
+    stat_dictionary['std_non_sites'] = globals_dataframe ['density'].std();
+
+
+    trimmed_p_sites = trimmed_bin_values_df['p_sites'].values;
+    trimmed_p_non_sites = trimmed_bin_values_df['p_non_sites'].values;
+    stat_dictionary['ks_d'], stat_dictionary['ks_p']=ks_2samp(trimmed_p_sites,trimmed_p_non_sites)
+    stat_dictionary['mw_u'],stat_dictionary['mw_p']=mannwhitneyu(trimmed_p_sites,trimmed_p_non_sites)
     return stat_dictionary, trimmed_bin_values_df;

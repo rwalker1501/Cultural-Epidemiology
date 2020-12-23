@@ -1,26 +1,40 @@
 *************************
-Epidemiology of culture data analysis v.2.0
+Epidemiology of culture data analysis v.1.1
 By Richard Walker & Camille Ruiz
-
-For information email richard.walker@epfl.ch or rwalker1501@gmail.com
 *************************
 
 *****************
 Purpose
 *****************
-This repository contains the code and data necessary to reproduce the results contained in the paper, "Diffusion of cultural innovation depends on demography: testing an epidemiological model of cultural diffusion with a global dataset of rock art sites and climate-based estimates of ancient population densities" by Richard Walker, Anders Eriksson, Camille Ruiz, Taylor Howard, and Francesco Casalegno.
+This repository contains the code and data necessary to reproduce the results contained in the paper, "Stabilization of cultural innovations depends on population density: testing an epidemiological model of cultural evolution against a global dataset of rock art sites and climate-based estimates of ancient population densities" by Richard Walker, Anders Eriksson, Camille Ruiz, Taylor Howard, and Francesco Casalegno.
 
 The parameters for each analysis are contained in an "experiment parameters" file. By modifying these parameters users can run new analyses without modifying the code.
 
 The code provided here is designed to analyse the relationship between parietal rock art and estimates of climate and genetics derived estimates of population density from  Eriksson 2012 and Timmermann 2016 (see references section of the paper).
 
-With minor modifications the same code can be used to analyse  other categories of artifact, and other population estimates
+With minor modifications the same code can be used to analyse  other categories of artefact, and other population estimates
 
 *******************
-Implementation
+Requirements
 *******************
+Running the code requires Python 2.7 and the following packages:
 
-The code is implemented in Python 2.7
+collections
+copy
+csv
+datetime
+gc
+json
+math
+matplotlib
+mpl_toolkits.basemap 
+numpy
+os
+pandas
+re
+scipy
+sys
+
 
 *******************
 Usage
@@ -34,7 +48,7 @@ The program can be used in "script" or "menu" mode.
 Script mode
 -----
 
-The script contained in the program "fig_script" reproduces the full set of results contained in the paper (plus additional supporting results)
+The script contained in the program fig_script.py reproduces the full set of results contained in the paper (plus additional supporting results)
 
 To launch the script, navigate to the working directory containing the code, open a terminal and type
 
@@ -43,14 +57,14 @@ To launch the script, navigate to the working directory containing the code, ope
 -----
 Menu mode
 -----
-The script "main_menu" allows the user to load the experiment parameter file for a specific analysis, modify the parameter values, save the parameter values in a new experiment parameter file, and run the corresponding analysis.
+The script main_menu allows the user to load the experiment parameter file for a specific analysis, modify the parameter values, save the parameter values in a new experiment parameter file, and run the corresponding analysis.
 
 To launch the menu system, navigate to the working directory containing the code, open a terminal and type
 
 >python main_menu.py
 
 
-In script and in menu mode the results of the analysis are saved in a subdirectory of the "Results" directory, with a name defined in the experiment parameters file (see below)
+In script and in menu mode the results of the analysis are saved in a subdirectory of the "results" directory, with a name defined in the experiment parameters file (see below)
 
 ************************
 Input Data
@@ -60,7 +74,7 @@ The repository contains all the data necessary to reproduce the analyses reporte
 
 Each analysis uses the following data files
 
-1)  Target file: a .csv file in the "Target" directory containing a description of each rock art site, used for a specific analysis.  For each site, the target provides the following information
+1)  Target file: a .csv file in the "Targets" directory containing a description of each rock art site, used for a specific analysis.  For each site, the target provides the following information
 
 - Name
 - Latitude
@@ -76,7 +90,8 @@ Each analysis uses the following data files
 
 2) Population data file:
 
-This file contains estimates of human population density for a three dimensional array of latitudes, longitudes, and dates.
+Population estimates are contained in the "population_data" directory and take the form of
+files containing estimates of human population density for a three dimensional array of latitudes, longitudes, and dates.
 
 Two files are currently available.
 
@@ -95,7 +110,7 @@ Units of density and time are specified in a separate .info file (see below)
 
 3) Population info file
 
-Each population file is associated with a meta-data json file with the following fields
+Each population file is associated with a meta-data json file which is also stored in the "population_data" directory. Each file contains the following fields
 
 time_multiplier: a coefficient scaling the time units used in the file to years BP
 density_multiplier: a coefficient scaling the human population density units used in the file to individuals/100 km2
@@ -104,7 +119,9 @@ ascending_time: if ascending_time is True the dates in ts_txt are sorted from th
 
 4) Experiment parameters file
 
-This json file contains all the parameters necessary to run an experiment. The file can be modified by hand, or from the menu. The parameters are defined as follows:
+Parameters for individual experiments are contained in experiment parameters files. These are stored in the "experiment_parameters" directory
+
+Each file (in json format) contains all the parameters necessary to run an experiment. The file can be modified by hand, or from the menu. The parameters are defined as follows:
 
 ---
 Population data:
@@ -112,9 +129,9 @@ Population data:
 The name of the population data file
 
 ---
-Globals type:
+Non-sites type:
 ---
-The class of globals used in the analysis:
+The class of “non-sites” whose population densities are compared against those of sites
 
 Options
 
@@ -122,6 +139,7 @@ All:  All cells in the population file
 No equatorials: All cells in the population excluding cells between 20°N and 10°S
 Australia: All cells within the territory of modern Australia
 France_Spain: All cells within the territory of modern France and Spain
+Rest of the world: All cells in the population excluding cells between 20°N and 10°S and excluding cells in the modern territory of Australia and France-Spain 
 
 ---
 Target file
@@ -168,13 +186,13 @@ The most recent date considered in the analysis
 Max latitude
 ---
 
-The Northern-most latitude considered in the analysis
+The northern-most latitude considered in the analysis
 
 ---
 Min latitude
 ---
 
-The Southern-most latitude considered in the analysis
+The southern-most latitude considered in the analysis
 
 ---
 High_res
@@ -274,6 +292,12 @@ true: the program saves a .csv file suitable for analysis with external software
 
 false: the.csv file is not generated
 
+---
+phi
+---
+
+The value of phi used in the analysis
+
 ************************
 Output
 ************************
@@ -360,9 +384,6 @@ A .csv file (separator=";") showing the quantitative results of the analysis. Th
 - Mean population density for globals
 - Standard deviation of density for sites
 - Standard deviation of density for globals
-- Results of tests for difference between distributions of sites and globals
-    * Two sample Kolmogoroff-Smirnoff test; D and p values
-    * Mann-Whitney U test: U and p values
 - Results of the maximum likelihood estimation for the epidemiological model
     * Confidence intervals for the inferred threshold
     * Maximum likelihood estimate of the gamma parameter
@@ -380,6 +401,11 @@ A .csv file (separator=";") showing the quantitative results of the analysis. Th
     * AIC (Akaike Information Criterion)
 - Bayes factor: epidemiological vs. proportional model
 - Bayes factor: epidemiological vs. constant model
+- Results for binomial test
+	* Number of sites with population density<inferred threshold
+	* Number of non-sites with population density<inferred threshold
+	* Proportion of non-sites with population density<inferred threshold
+	* Probability of the observed number of sites with population density<inferred    threshold if sites and non-sites come from the same distribution and all measurements are independent
 
 ---
 Saved data files
@@ -403,7 +429,7 @@ For each cell, at each date considered in the analysis, the "merged_df" file pro
 Other files
 ---
 
-In addition to the files just described, the "processed targets", and "globals" directories contain a number of additional files, used for internal purposes. Do not delete these files.
+In addition to the files just described, the "processed targets", and "globals" directories contain  data used for internal processing.
 
 
 

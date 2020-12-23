@@ -24,5 +24,7 @@
     "remove_not_figurative_targets": false,
     "remove_not_controversial_targets": false,
     "save_processed_targets": false,
-    "min_globals":1
+    "min_globals":1,
+    "infer_missing_values": false,
+    "phi":2
 }
